@@ -1,0 +1,31 @@
+services:
+  stager:
+    image: ghcr.io/jt196/quartz-publish-stager:latest
+    container_name: quartz-publish-stager
+    restart: unless-stopped
+    environment:
+      VAULT_DIR: /vault
+      CONTENT_DIR: /content
+    volumes:
+      - ${VAULT_DIR:?Set VAULT_DIR in .env}:/vault:ro
+      - content:/content
+    # PGID shared by other NAS containers (see docker-syncthing/README.md) —
+    # needed so this can read vault files it doesn't own.
+    group_add:
+      - "100"
+
+  web:
+    image: ghcr.io/jt196/quartz-publish-web:latest
+    container_name: quartz-publish-web
+    restart: unless-stopped
+    depends_on:
+      - stager
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?Set PUBLIC_DOMAIN in .env}
+    volumes:
+      - content:/quartz/content:ro
+    ports:
+      - "8098:8080"
+
+volumes:
+  content:
